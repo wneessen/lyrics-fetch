@@ -1,0 +1,4 @@
+github.com/dhowden/tag v0.0.0-20240417053706-3d75831295e8 h1:OtSeLS5y0Uy01jaKK4mA/WVIYtpzVm63vLVAPzJXigg=
+github.com/dhowden/tag v0.0.0-20240417053706-3d75831295e8/go.mod h1:apkPC/CR3s48O2D7Y++n1XWEpgPNNCjXYga3PPbJe2E=
+github.com/hcl/audioduration v0.0.0-20221028095105-c8039191ae43 h1:rXo3ryzLSBpdTeoDKzd1Iz9eDO33M6mcfLFIOOQCqHw=
+github.com/hcl/audioduration v0.0.0-20221028095105-c8039191ae43/go.mod h1:ATjLP2ak34LrSbG6oRxL1dO+yNwZnhSPSNxnlEuVwYM=
