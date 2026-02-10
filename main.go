@@ -49,7 +49,7 @@ const (
 
 var (
 	// extensions is a map that defines supported file extensions for audio files, with each entry indicating
-	//its validity.
+	// its validity.
 	extensions = map[string]bool{
 		".mp3":  true,
 		".flac": true,
@@ -238,18 +238,16 @@ func (f *fetcher) retrieveLyrics(artist, album, track string, duration time.Dura
 	for i := 0; i < retries; i++ {
 		retCode, err := f.client.GetWithTimeout(context.Background(), apiEndpoint, res, query, nil, apiTimeout)
 		if err != nil {
-			switch {
-			case retCode == 404:
+			if retCode == 404 {
 				return "", fmt.Errorf("no lyrics found for song '%s - %s (%s)'", artist, track, album)
-			default:
-				f.errLog.Error("failed to retrieve lyrics from LRCLIB API", logErr(err))
-
-				// We'll sleep for a second before retrying
-				f.stdLog.Debug("retrying in 1 second", slog.Int("retry", i+1),
-					slog.Int("retries", retries))
-				time.Sleep(time.Second)
-				continue
 			}
+
+			// We'll sleep for a second and then retry
+			f.errLog.Error("failed to retrieve lyrics from LRCLIB API", logErr(err))
+			f.stdLog.Debug("retrying in 1 second", slog.Int("retry", i+1),
+				slog.Int("retries", retries))
+			time.Sleep(time.Second)
+			continue
 		}
 		if res.Instrumental {
 			f.stdLog.Warn("song is an instrumental, writing empty lyrics file", slog.String("artist", artist),
