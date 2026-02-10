@@ -18,12 +18,15 @@ import (
 	"github.com/hcl/audioduration"
 )
 
+// fetcher is a type used for fetching song lyrics, logging errors, and managing HTTP requests through a custom client.
 type fetcher struct {
 	errLog *slog.Logger
 	stdLog *slog.Logger
 	client *Client
 }
 
+// apiResponse represents the structure of the API response containing song and lyrics-related metadata
+// of the LRCLIB API
 type apiResponse struct {
 	ID           int     `json:"id"`
 	TrackName    string  `json:"trackName"`
@@ -36,11 +39,17 @@ type apiResponse struct {
 }
 
 const (
+
+	// apiEndpoint represents the base URL of the LRCLIB API used for fetching song lyrics.
 	apiEndpoint = "https://lrclib.net/api/get"
-	apiTimeout  = time.Second * 30
+
+	// apiTimeout defines the maximum duration for API requests to prevent indefinite hanging of HTTP calls.
+	apiTimeout = time.Second * 30
 )
 
 var (
+	// extensions is a map that defines supported file extensions for audio files, with each entry indicating
+	//its validity.
 	extensions = map[string]bool{
 		".mp3":  true,
 		".flac": true,
@@ -50,9 +59,16 @@ var (
 		".dsf":  true,
 		".mp4":  true,
 	}
+
+	// fetchedCount tracks the number of files successfully processed and lyrics retrieved.
 	fetchedCount atomic.Uint64
+
+	// skippedCount tracks the number of files skipped during processing, typically due to unsupported
+	// formats or existing lyrics.
 	skippedCount atomic.Uint64
-	errCount     atomic.Uint64
+
+	// errCount tracks the total number of errors encountered during file processing and lyrics retrieval.
+	errCount atomic.Uint64
 )
 
 func main() {
@@ -85,10 +101,12 @@ func main() {
 		slog.Uint64("files_skipped", skippedCount.Load()), slog.Uint64("errors", errCount.Load()))
 }
 
+// logErr converts an error into a slog.Attr to use as a structured logging attribute.
 func logErr(err error) slog.Attr {
 	return slog.Any("error", err)
 }
 
+// findFiles processes files in a directory, determines if they should be skipped, and handles them if applicable.
 func (f *fetcher) findFiles(path string, entry fs.DirEntry, err error) error {
 	if err != nil {
 		return fmt.Errorf("failed to walk directory: %w", err)
@@ -103,6 +121,8 @@ func (f *fetcher) findFiles(path string, entry fs.DirEntry, err error) error {
 	return f.processFile(path, outfile)
 }
 
+// processFile processes the given file, extracts metadata, retrieves lyrics, and writes them to the specified
+// output file.
 func (f *fetcher) processFile(path, outfile string) error {
 	file, err := os.Open(path)
 	if err != nil {
@@ -159,6 +179,8 @@ func (f *fetcher) processFile(path, outfile string) error {
 	return nil
 }
 
+// songDuration extracts the duration of an audio file based on its format and returns it as a
+// time.Duration value.
 func (f *fetcher) songDuration(file *os.File, format string) (time.Duration, error) {
 	var dur float64
 	var err error
@@ -181,6 +203,7 @@ func (f *fetcher) songDuration(file *os.File, format string) (time.Duration, err
 	return time.Second * time.Duration(dur), err
 }
 
+// skipFile determines if a file should be skipped based on its type, extension, or existence of a lyrics file.
 func (f *fetcher) skipFile(path string, entry fs.DirEntry) (bool, string) {
 	ext := filepath.Ext(path)
 
@@ -201,6 +224,8 @@ func (f *fetcher) skipFile(path string, entry fs.DirEntry) (bool, string) {
 	return false, filepath.Join(dir, filen)
 }
 
+// retrieveLyrics fetches lyrics for a specific song by artist, album, and track, with retries on failure.
+// Returns the synchronized lyrics if available or an error if the lyrics could not be fetched.
 func (f *fetcher) retrieveLyrics(artist, album, track string, duration time.Duration) (string, error) {
 	query := url.Values{}
 	query.Set("track_name", track)
