@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: MIT
 
-package http
+package main
 
 import (
 	"context"
@@ -13,11 +13,10 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"reflect"
 	"runtime"
 	"time"
-
-	"github.com/wneessen/lyrics-fetch/internal/logger"
 )
 
 const (
@@ -41,11 +40,10 @@ var (
 // Client is a type wrapper for the Go stdlib http.Client and the Config
 type Client struct {
 	*http.Client
-	logger *logger.Logger
 }
 
 // New returns a new HTTP client
-func New(logger *logger.Logger) *Client {
+func New() *Client {
 	tlsConfig := &tls.Config{
 		MinVersion: tls.VersionTLS12,
 	}
@@ -54,7 +52,7 @@ func New(logger *logger.Logger) *Client {
 		Timeout:   DefaultTimeout,
 		Transport: httpTransport,
 	}
-	return &Client{httpClient, logger}
+	return &Client{httpClient}
 }
 
 // Get performs a HTTP GET request for the given URL and json-unmarshals the response
@@ -120,7 +118,7 @@ func (h *Client) PerformReq(ctx context.Context, method string, endpoint string,
 	}
 	defer func(body io.ReadCloser) {
 		if err := body.Close(); err != nil {
-			h.logger.Error("failed to close HTTP request body", logger.Err(err))
+			_, _ = fmt.Fprintf(os.Stderr, "failed to close HTTP request body: %s\n", err)
 		}
 	}(response.Body)
 
